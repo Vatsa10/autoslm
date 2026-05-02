@@ -38,6 +38,34 @@ def production(
     typer.echo(json.dumps(out, indent=2, default=str))
 
 
+@app.command("cold-start")
+def cold_start(
+    spec: str = typer.Argument(..., help="Natural-language task spec, e.g. 'fine-tune Llama 3.2-3B on ARC-Challenge'"),
+    base_model: str = typer.Option("meta-llama/Llama-3.2-3B"),
+    dataset_hint: Optional[str] = typer.Option(None, help="HF dataset id, e.g. 'allenai/ai2_arc'"),
+    tier: str = typer.Option("mid"),
+    iters: int = typer.Option(20),
+    tau: Optional[float] = typer.Option(None, help="Override target threshold"),
+    workdir: Optional[str] = typer.Option(None),
+    orch_model: Optional[str] = typer.Option(None),
+    n_train: int = typer.Option(1500),
+):
+    """Run cold-start mode: build model from a natural-language task spec."""
+    from .modes.cold_start import run_cold_start
+    cfg = AutoSLMConfig(hardware_tier=tier)
+    if workdir:
+        cfg.workdir = Path(workdir)
+    if orch_model:
+        cfg.orchestrator_model = orch_model
+    cfg.ensure_dirs()
+    out = run_cold_start(
+        cfg=cfg, task_spec=spec, base_model=base_model,
+        dataset_hint=dataset_hint, target_threshold=tau,
+        max_iterations=iters, n_train=n_train,
+    )
+    typer.echo(json.dumps(out, indent=2, default=str))
+
+
 @app.command("ingest-traces")
 def ingest_traces(
     jsonl_path: str = typer.Argument(...),

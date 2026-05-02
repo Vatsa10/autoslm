@@ -160,9 +160,32 @@ def default_handlers(cfg: AutoSLMConfig, store: TraceStore,
         return {"path": str(p), "bytes_written": len(args["content"])}
 
     def _delegate(args: dict) -> dict:
-        if delegate is None:
-            return {"error": "delegate not configured"}
-        return delegate(args["task"], args["subagent"])
+        # Custom override wins.
+        if delegate is not None:
+            return delegate(args["task"], args["subagent"])
+        # Built-in: trace_analyzer sub-agent (paper §2.1).
+        sub = args.get("subagent")
+        task = args["task"]
+        if sub == "trace_analyzer":
+            try:
+                from ..agents.trace_analyzer import TraceAnalyzer
+                deployed = args.get("deployed_model_id") or args.get("model_id") or ""
+                wd = sandbox / "trace_analyzer"
+                analyzer = TraceAnalyzer(cfg, store)
+                result = analyzer.analyze(task=task, deployed_model_id=deployed,
+                                         workdir=wd)
+                return {
+                    "brief": result.brief,
+                    "summary_path": result.summary_path,
+                    "clusters_path": result.clusters_path,
+                    "n_clusters": result.n_clusters,
+                    "fixable": result.fixable,
+                    "external": result.external,
+                    "poison": result.poison,
+                }
+            except Exception as e:
+                return {"error": f"trace_analyzer failed: {e}"}
+        return {"error": f"unknown subagent: {sub}"}
 
     def _web(args: dict) -> dict:
         if web_search is None:

@@ -29,6 +29,9 @@ class EvalSet:
     pos: list[EvalExample] = field(default_factory=list)
     neg: list[EvalExample] = field(default_factory=list)
     boundary: list[EvalExample] = field(default_factory=list)
+    # Cross-checkpoint ratchet (paper §2.7): previous accepted iter's eval set.
+    # Candidate must satisfy r(pi) <= eps on BOTH current and prior set.
+    prior: Optional["EvalSet"] = None
 
     def all(self) -> list[EvalExample]:
         return self.pos + self.neg + self.boundary
@@ -48,6 +51,9 @@ class EvalSet:
 
     def save(self, path: str | Path) -> None:
         rows = [{**asdict(ex)} for ex in self.all()]
+        # avoid serializing recursive `prior` blob in saved snapshots
+        for r in rows:
+            r.pop("prior", None)
         Path(path).write_text(json.dumps(rows, indent=2, default=str), encoding="utf-8")
 
 
@@ -137,9 +143,22 @@ def score_pipeline(
     strategy: LearningStrategy,
     judge_client: Optional[LLMClient] = None,
 ) -> tuple[float, int, EvalResult]:
-    """One-call scoring used by MCGS evaluator. Returns (a(pi), r(pi), full_result)."""
+    """One-call scoring used by MCGS evaluator. Returns (a(pi), r(pi), full_result).
+
+    `r(pi)` aggregates regressions on the regression set AND on the prior accepted
+    iter's eval set when present (paper §2.7 cross-checkpoint ratchet). The
+    aggregation is `max(r_current, r_prior)` so a single set blowing past epsilon
+    rejects the candidate.
+    """
     method = strategy.eval_method
     e = evaluate(eval_set.all(), predictor, method, judge_client, strategy.judge_criteria)
     r = regression_count(regression_set or [], predictor, method, judge_client,
                          strategy.judge_criteria) if regression_set else 0
+    if eval_set.prior is not None:
+        prior_examples = eval_set.prior.all()
+        if prior_examples:
+            r_prior = regression_count(prior_examples, predictor, method, judge_client,
+                                       strategy.judge_criteria)
+            r = max(r, r_prior)
+            e.per_slice = {**e.per_slice, "_prior_regressions": r_prior}
     return e.score, r, e

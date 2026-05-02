@@ -45,6 +45,11 @@ class HyperParams:
     grad_checkpoint: bool = True
     system_prompt: Optional[str] = None
     full_finetune: bool = False  # encoder path or "big" tier
+    # Model family — `decoder` for Llama/Qwen (peft+trl); `gliner2` for the
+    # encoder NER + classification path (paper §2.1).
+    model_family: Literal["decoder", "gliner2"] = "decoder"
+    # GLiNER2 label set (entity types or class labels)
+    gliner_labels: Optional[list[str]] = None
     seed: int = 42
 
 

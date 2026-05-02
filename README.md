@@ -12,25 +12,33 @@ This repo is a from-scratch implementation of the architecture described in the 
 
 | Component | Paper § | Status |
 |---|---|---|
-| Pipeline space `π = (D, H, S)` | 2.2 | ✅ |
-| MCGS over training pipelines (UCT, fuse, prune, rollback) | 2.2 | ✅ |
-| Failure taxonomy + fixable/poison classifier | 2.6, 3.1 | ✅ |
-| Trace store with `query_traces` SQL+bash semantics (Listing 1) | 2.6 | ✅ |
-| Quality controls: 2-for-1, label balance, length-match, entity diversification, surface patterns | 2.3 | ✅ |
-| Hard-negative generation (LLM teacher + NN-label-swap fallback) | 2.3, 2.6 | ✅ |
-| Replay buffer (Eq. 15) | 2.6 | ✅ |
-| CoT annotation by teacher model | 2.3 | ✅ |
-| LoRA SFT trainer (peft + trl), 4/8-bit quant, hardware tier presets | 2.1 | ✅ |
-| LLM-as-judge + token-F1 / EM / ROUGE / pass@1 metrics | 2.2 | ✅ |
-| Eval set (E_pos ∪ E_neg ∪ E_boundary) + regression set R | 2.5 (Eq. 7), 2.6 | ✅ |
-| Production-mode closed loop with cross-checkpoint regression gate (Section 2.7 ratchet) | 2.6, 2.7 | ✅ |
-| Iteration policy: <0.80 rework, 0.80–0.95 tune H, >0.95 surgical, regress → rollback | 2.4 | ✅ |
-| Orchestrator with agent tools (`query_traces`, `bash`, `read/edit_file`, `delegate_task`, `web_search`, `run_search`) | 2.5, 2.6 | ✅ |
-| AdaptFT-Bench: stage-based perturbation pipeline (15% → 25% → 40% poison) | 3 | ✅ |
-| Cold-start mode | 2.5 | 🚧 v0.2 |
-| Sub-agent Trace Analyzer (10× token limit, disk-backed) | 2.1 | 🚧 |
-| Modal sandbox runner | 2.1 | 🚧 (local Docker fallback works) |
-| Confidence calibration + TF-IDF correction propagation | 2.7 | ⏳ |
+| Pipeline space `π = (D, H, S)` | 2.2 | done |
+| MCGS over training pipelines (UCT, fuse, prune, rollback) | 2.2 | done |
+| Failure taxonomy + fixable/poison classifier | 2.6, 3.1 | done |
+| Trace store with `query_traces` SQL+bash semantics (Listing 1) | 2.6 | done |
+| Quality controls: 2-for-1, label balance, length-match, entity diversification, surface patterns | 2.3 | done |
+| Hard-negative generation (LLM teacher + NN-label-swap fallback) | 2.3, 2.6 | done |
+| Replay buffer (Eq. 15) | 2.6 | done |
+| CoT annotation by teacher model | 2.3 | done |
+| LoRA SFT trainer (peft + trl), 4/8-bit quant, hardware tier presets | 2.1 | done |
+| LLM-as-judge + token-F1 / EM / ROUGE / pass@1 metrics | 2.2 | done |
+| Eval set (E_pos ∪ E_neg ∪ E_boundary) + regression set R | 2.5 (Eq. 7), 2.6 | done |
+| Production-mode closed loop with cross-checkpoint regression gate (Section 2.7 ratchet) | 2.6, 2.7 | done |
+| Iteration policy: <0.80 rework, 0.80–0.95 tune H, >0.95 surgical, regress → rollback | 2.4 | done |
+| Orchestrator with agent tools (`query_traces`, `bash`, `read/edit_file`, `delegate_task`, `web_search`, `run_search`) | 2.5, 2.6 | done |
+| AdaptFT-Bench: stage-based perturbation pipeline (15% → 25% → 40% poison) | 3 | done |
+| Live confirmation probes (cluster demotion + probe-failure harvesting) | 2.6 step 3 | done |
+| Cross-checkpoint regression gate (ratchet on prior eval set) | 2.7 | done |
+| Persistent `data-curation.md` audit log | 2.1 | done |
+| Cold-start mode (5-stage workflow, unconstrained MCGS) | 2.5 | done |
+| Trace Analyzer sub-agent (own LLM context, ~100K out, disk-backed) | 2.1 | done |
+| GLiNER2 encoder path (NER + classification, full FT or LoRA) | 2.1 | done |
+| Modal sandbox runner | 2.1 | planned v0.4 (local Docker fallback works) |
+| Confidence calibration + TF-IDF correction propagation | 2.7 | planned v0.3 |
+| FSDP for `big` tier; DPO/RLHF objectives | 2.1, 6.3 | planned v0.3 |
+| Distributed MCGS — parallel branches per iteration | 2.2 (Eq. 3) | planned v0.4 |
+| Cost telemetry (tokens + GPU hours per run) | 6.1 | planned v0.4 |
+| Paper benchmark replication suite (CLINC150, ARC, GSM8K, etc.) | 4 | planned v0.4 |
 
 ---
 
@@ -173,9 +181,9 @@ Selected via `--tier` CLI flag or `AutoSLMConfig(hardware_tier=...)`.
 
 | Tier | Quant | LoRA r | Max seq | Grad ckpt | Suggested base models |
 |------|-------|--------|---------|-----------|------------------------|
-| `edge` | 4-bit (NF4) | 8 | 1024 | ✅ | SmolLM2-360M, Qwen3-0.5B, Llama-3.2-1B |
-| `mid` | 8-bit | 32 | 2048 | ✅ | Llama-3.2-3B, Qwen3-3B/8B |
-| `big` | bf16 | 64 | 4096 | ❌ | Qwen3-8B, Llama-3.1-8B (full FT optional) |
+| `edge` | 4-bit (NF4) | 8 | 1024 | yes | SmolLM2-360M, Qwen3-0.5B, Llama-3.2-1B |
+| `mid` | 8-bit | 32 | 2048 | yes | Llama-3.2-3B, Qwen3-3B/8B |
+| `big` | bf16 | 64 | 4096 | no | Qwen3-8B, Llama-3.1-8B (full FT optional) |
 
 `autoslm tiers` prints the active presets.
 
@@ -211,7 +219,7 @@ autoslm/
     taxonomy.py         # cluster + LLM-label fixability
   modes/
     production.py       # paper §2.6 closed loop
-    cold_start.py       # 🚧 paper §2.5 (v0.2)
+    cold_start.py       # paper §2.5 (full 5-stage workflow)
   tools/
     registry.py         # OpenAI/Anthropic tool specs + handlers
 
@@ -283,10 +291,10 @@ Pipeline-level knobs (`AutoSLMConfig`):
 
 ## Roadmap
 
-- **v0.1** ✅ Production mode + MCGS + AdaptFT-Bench + multi-provider orchestrator + LoRA SFT
-- **v0.2** Cold-start mode, Trace Analyzer sub-agent, Modal sandbox, GLiNER2 encoder path
-- **v0.3** Confidence calibration + TF-IDF correction propagation, FSDP for `big` tier
-- **v0.4** Distributed MCGS (parallel pipeline evaluation), full paper benchmark replication
+- **v0.1** (done) — Production mode + MCGS + AdaptFT-Bench + multi-provider orchestrator + LoRA SFT
+- **v0.2** (done) — Live confirmation probes, cross-checkpoint ratchet, audit log, Trace Analyzer sub-agent, GLiNER2 encoder path, cold-start mode (`autoslm cold-start`)
+- **v0.3** (planned) — Confidence calibration + TF-IDF correction propagation, FSDP for `big` tier, DPO/RLHF objectives
+- **v0.4** (planned) — Distributed MCGS (parallel branch eval), Modal sandbox runner, paper benchmark replication suite (`bench/repro/`), cost telemetry
 
 ---
 
