@@ -1,7 +1,7 @@
 [project]
-name = "pioneer-agent"
+name = "autoslm"
 version = "0.0.1"
-description = "Closed-loop autonomous SLM fine-tuning (Pioneer Agent reimplementation)"
+description = "Closed-loop autonomous SLM fine-tuning (open reimpl. of Pioneer Agent, arXiv:2604.09791)"
 requires-python = ">=3.10"
 dependencies = [
     "litellm>=1.50",
@@ -39,14 +39,14 @@ modal = ["modal"]
 dev = ["pytest", "ruff", "mypy"]
 
 [project.scripts]
-pioneer = "pioneer.cli:app"
+autoslm = "autoslm.cli:app"
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["pioneer*", "bench*"]
+include = ["autoslm*", "bench*"]
 
 [tool.ruff]
 line-length = 110

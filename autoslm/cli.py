@@ -1,4 +1,4 @@
-"""CLI entrypoints. `pioneer <subcommand>`."""
+"""CLI entrypoints. `autoslm <subcommand>`."""
 from __future__ import annotations
 import json
 from pathlib import Path
@@ -6,7 +6,7 @@ from typing import Optional
 
 import typer
 
-from .config import PioneerConfig, TIERS
+from .config import AutoSLMConfig, TIERS
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
@@ -25,7 +25,7 @@ def production(
 ):
     """Run production-mode closed-loop adaptation."""
     from .modes.production import run_production
-    cfg = PioneerConfig(hardware_tier=tier)
+    cfg = AutoSLMConfig(hardware_tier=tier)
     if workdir:
         cfg.workdir = Path(workdir)
     if orch_model:
@@ -41,7 +41,7 @@ def production(
 @app.command("ingest-traces")
 def ingest_traces(
     jsonl_path: str = typer.Argument(...),
-    db_path: str = typer.Option(".pioneer/traces.duckdb"),
+    db_path: str = typer.Option(".autoslm/traces.duckdb"),
     backend: str = typer.Option("duckdb"),
 ):
     """Bulk-load JSONL of trace records into the store."""
@@ -106,7 +106,7 @@ def orchestrate(
 ):
     """Free-form orchestrator: LLM drives the loop with tool use."""
     from .orchestrator import run_orchestrator
-    cfg = PioneerConfig(hardware_tier=tier)
+    cfg = AutoSLMConfig(hardware_tier=tier)
     cfg.ensure_dirs()
     convo = run_orchestrator(cfg, request, deployed_model_id, base_model, max_turns)
     typer.echo(json.dumps({"turns": len(convo)}, indent=2))

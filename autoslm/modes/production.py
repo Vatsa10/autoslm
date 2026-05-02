@@ -15,7 +15,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Optional
 
-from ..config import PioneerConfig
+from ..config import AutoSLMConfig
 from ..llm import LLMClient
 from ..traces import TraceStore
 from ..traces.taxonomy import build_taxonomy, Cluster
@@ -55,7 +55,7 @@ def _passes_to_regression(records: list[dict], cap: int = 200) -> list[EvalExamp
 
 
 def _build_corrective_curriculum(
-    cfg: PioneerConfig,
+    cfg: AutoSLMConfig,
     teacher: LLMClient,
     fixable_clusters: list[Cluster],
     fail_records: list[dict],
@@ -99,7 +99,7 @@ def _build_corrective_curriculum(
 
 
 def run_production(
-    cfg: PioneerConfig,
+    cfg: AutoSLMConfig,
     deployed_model_id: str,
     base_model: str,
     task: str = "classification",

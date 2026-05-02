@@ -16,7 +16,7 @@ import subprocess
 from pathlib import Path
 from typing import Callable, Optional
 
-from ..config import PioneerConfig
+from ..config import AutoSLMConfig
 from ..traces import TraceStore
 
 
@@ -111,7 +111,7 @@ def tool_specs() -> list[dict]:
     ]
 
 
-def default_handlers(cfg: PioneerConfig, store: TraceStore,
+def default_handlers(cfg: AutoSLMConfig, store: TraceStore,
                     sandbox_dir: Optional[Path] = None,
                     delegate: Optional[Callable[[str, str], dict]] = None,
                     web_search: Optional[Callable[[str, int], list]] = None,
@@ -179,5 +179,5 @@ def default_handlers(cfg: PioneerConfig, store: TraceStore,
     }
 
 
-def build_tool_registry(cfg: PioneerConfig, store: TraceStore, **kw):
+def build_tool_registry(cfg: AutoSLMConfig, store: TraceStore, **kw):
     return tool_specs(), default_handlers(cfg, store, **kw)

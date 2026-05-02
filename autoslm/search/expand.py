@@ -15,7 +15,7 @@ from .pipeline import Pipeline, DatasetSpec, HyperParams, LearningStrategy
 from .mcgs import MCGS, Node
 
 
-EXPAND_SYSTEM = """You are the search controller for Pioneer Agent (paper arXiv:2604.09791).
+EXPAND_SYSTEM = """You are the search controller for autoslm (open re-impl. of Pioneer Agent, arXiv:2604.09791).
 You navigate a graph of training pipelines pi=(D,H,S). Each node is a completed train+eval.
 Given the parent pipeline, its score, recent failure modes, and lineage, propose ONE
 hypothesis-driven modification that targets the dominant failure mode.

@@ -12,9 +12,9 @@ import json
 import random
 from pathlib import Path
 
-from pioneer.config import PioneerConfig
-from pioneer.traces import TraceStore, TraceRecord
-from pioneer.modes.production import run_production
+from autoslm.config import AutoSLMConfig
+from autoslm.traces import TraceStore, TraceRecord
+from autoslm.modes.production import run_production
 from bench.adaptft.build_scenario import build_synthetic_scenario
 
 
@@ -58,10 +58,10 @@ def main():
     ap.add_argument("--tier", default="edge", choices=["edge", "mid", "big"])
     ap.add_argument("--base-model", default="HuggingFaceTB/SmolLM2-360M-Instruct")
     ap.add_argument("--iters", type=int, default=3)
-    ap.add_argument("--workdir", default="./.pioneer_demo")
+    ap.add_argument("--workdir", default="./.autoslm_demo")
     args = ap.parse_args()
 
-    cfg = PioneerConfig(hardware_tier=args.tier, workdir=Path(args.workdir),
+    cfg = AutoSLMConfig(hardware_tier=args.tier, workdir=Path(args.workdir),
                        trace_db_path=Path(args.workdir) / "traces.duckdb")
     cfg.ensure_dirs()
 

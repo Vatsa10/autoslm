@@ -21,19 +21,19 @@ TIERS: dict[str, HardwareTier] = {
 }
 
 
-class PioneerConfig(BaseModel):
+class AutoSLMConfig(BaseModel):
     project_root: Path = Field(default_factory=lambda: Path.cwd())
-    workdir: Path = Field(default_factory=lambda: Path.cwd() / ".pioneer")
+    workdir: Path = Field(default_factory=lambda: Path.cwd() / ".autoslm")
 
     # Orchestrator LLM
-    orchestrator_model: str = os.getenv("PIONEER_ORCH_MODEL", "anthropic/claude-sonnet-4-6")
+    orchestrator_model: str = os.getenv("AUTOSLM_ORCH_MODEL", "anthropic/claude-sonnet-4-6")
     orchestrator_max_turns: int = 500  # production default; cold-start uses 1500
     thinking_budget: int = 32_000
 
     # Teacher / judge LLMs
-    judge_model: str = os.getenv("PIONEER_JUDGE_MODEL", "openai/gpt-4o-mini")
-    teacher_reasoning_model: str = os.getenv("PIONEER_TEACHER_REASONING", "deepseek/deepseek-reasoner")
-    teacher_general_model: str = os.getenv("PIONEER_TEACHER_GENERAL", "openai/gpt-4.1")
+    judge_model: str = os.getenv("AUTOSLM_JUDGE_MODEL", "openai/gpt-4o-mini")
+    teacher_reasoning_model: str = os.getenv("AUTOSLM_TEACHER_REASONING", "deepseek/deepseek-reasoner")
+    teacher_general_model: str = os.getenv("AUTOSLM_TEACHER_GENERAL", "openai/gpt-4.1")
 
     # Trainer
     base_model_default: str = "meta-llama/Llama-3.2-3B"
@@ -48,7 +48,7 @@ class PioneerConfig(BaseModel):
 
     # Trace store
     trace_db: str = "duckdb"
-    trace_db_path: Path = Field(default_factory=lambda: Path.cwd() / ".pioneer" / "traces.duckdb")
+    trace_db_path: Path = Field(default_factory=lambda: Path.cwd() / ".autoslm" / "traces.duckdb")
 
     def tier(self) -> HardwareTier:
         return TIERS[self.hardware_tier]
@@ -58,4 +58,4 @@ class PioneerConfig(BaseModel):
             (self.workdir / sub).mkdir(parents=True, exist_ok=True)
 
 
-DEFAULT = PioneerConfig()
+DEFAULT = AutoSLMConfig()

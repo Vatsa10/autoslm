@@ -8,7 +8,7 @@ the agent-tool surface so an LLM can:
   - delegate to sub-agents (delegate_task)
   - kick off MCGS via tool_calls (run_search)
 
-This is intentionally thin: most heavy work is in pioneer.modes.production.
+This is intentionally thin: most heavy work is in autoslm.modes.production.
 """
 from __future__ import annotations
 import json
@@ -16,14 +16,15 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Optional
 
-from .config import PioneerConfig
+from .config import AutoSLMConfig
 from .llm import LLMClient, chat_with_tools
 from .traces import TraceStore
 from .tools import build_tool_registry
 from .modes.production import run_production
 
 
-SYSTEM = """You are Pioneer Agent (paper arXiv:2604.09791), driving closed-loop SLM adaptation.
+SYSTEM = """You are autoslm (open re-implementation of Pioneer Agent, arXiv:2604.09791),
+driving closed-loop SLM adaptation.
 
 You have tools to query inference traces, run shell, read/edit files, delegate sub-agents.
 Workflow when asked to improve a deployed model:
@@ -38,7 +39,7 @@ Never load >50 raw rows into context: filter, summarize, persist via bash_pipeli
 
 
 def run_orchestrator(
-    cfg: PioneerConfig,
+    cfg: AutoSLMConfig,
     user_request: str,
     deployed_model_id: Optional[str] = None,
     base_model: Optional[str] = None,
