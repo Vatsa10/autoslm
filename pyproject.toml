@@ -1,0 +1,53 @@
+[project]
+name = "pioneer-agent"
+version = "0.0.1"
+description = "Closed-loop autonomous SLM fine-tuning (Pioneer Agent reimplementation)"
+requires-python = ">=3.10"
+dependencies = [
+    "litellm>=1.50",
+    "anthropic>=0.40",
+    "pydantic>=2.7",
+    "rouge-score",
+    "scikit-learn",
+    "numpy",
+    "pandas",
+    "duckdb",
+    "sqlalchemy>=2.0",
+    "rich",
+    "typer",
+    "pyyaml",
+    "networkx",
+    "tenacity",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+ml = [
+    "torch>=2.4",
+    "transformers>=4.46",
+    "peft>=0.13",
+    "trl>=0.12",
+    "datasets>=3.0",
+    "accelerate>=1.0",
+    "sentencepiece",
+    "evaluate",
+    "bitsandbytes>=0.44; platform_system != 'Darwin'",
+    "sentence-transformers",
+]
+unsloth = ["unsloth"]
+modal = ["modal"]
+dev = ["pytest", "ruff", "mypy"]
+
+[project.scripts]
+pioneer = "pioneer.cli:app"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["pioneer*", "bench*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
