@@ -11,20 +11,19 @@ Hardware tiers (configs.py):
 - mid:  8-bit + LoRA r=32, grad_checkpoint, 2048 ctx
 - big:  bf16 + LoRA r=64, 4096 ctx, optional FSDP
 """
-
-import os
-
-# Enable FSDP CPU offload sharding before any HF imports
-if os.environ.get("AUTOSLM_FSDP", "0") == "1":
-    os.environ.setdefault("ACCELERATE_USE_FSDP", "true")
-    os.environ.setdefault("FSDP_AUTO_WRAP_POLICY", "TRANSFORMER_BASED_WRAP")
 from __future__ import annotations
+
 import json
 import os
 import uuid
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Optional
+
+# Enable FSDP CPU offload sharding before any HF imports
+if os.environ.get("AUTOSLM_FSDP", "0") == "1":
+    os.environ.setdefault("ACCELERATE_USE_FSDP", "true")
+    os.environ.setdefault("FSDP_AUTO_WRAP_POLICY", "TRANSFORMER_BASED_WRAP")
 
 from ..search.pipeline import HyperParams, LearningStrategy
 from ..data.curate import Example
