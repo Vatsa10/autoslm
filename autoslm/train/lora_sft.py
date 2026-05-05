@@ -11,6 +11,13 @@ Hardware tiers (configs.py):
 - mid:  8-bit + LoRA r=32, grad_checkpoint, 2048 ctx
 - big:  bf16 + LoRA r=64, 4096 ctx, optional FSDP
 """
+
+import os
+
+# Enable FSDP CPU offload sharding before any HF imports
+if os.environ.get("AUTOSLM_FSDP", "0") == "1":
+    os.environ.setdefault("ACCELERATE_USE_FSDP", "true")
+    os.environ.setdefault("FSDP_AUTO_WRAP_POLICY", "TRANSFORMER_BASED_WRAP")
 from __future__ import annotations
 import json
 import os
@@ -71,6 +78,28 @@ def _quant_config(quant: str):
     return None
 
 
+def _fsdp_config(H: HyperParams):
+    """Build FullyShardedDataParallelPlugin for big tier."""
+    try:
+        from accelerate import FullyShardedDataParallelPlugin
+        from torch.distributed.fsdp import CPUOffload, MixedPrecision
+        import torch
+
+        mixed_precision = MixedPrecision(
+            param_dtype=torch.bfloat16 if H.bf16 else torch.float16,
+            reduce_dtype=torch.bfloat16 if H.bf16 else torch.float16,
+            buffer_dtype=torch.bfloat16 if H.bf16 else torch.float16,
+        )
+        return FullyShardedDataParallelPlugin(
+            auto_wrap_policy=None,  # TRANSFORMER_BASED_WRAP set via env
+            cpu_offload=CPUOffload(offload_params=False),
+            mixed_precision_policy=mixed_precision,
+            sharding_strategy=1,  # FULL_SHARD
+        )
+    except Exception:
+        return None
+
+
 def train_lora_sft(
     examples: list[Example],
     H: HyperParams,
@@ -79,7 +108,10 @@ def train_lora_sft(
     eval_examples: Optional[list[Example]] = None,
     log_callback=None,
 ) -> TrainResult:
-    """Run one SFT job. Returns checkpoint path + metrics."""
+    """Run one SFT job. Returns checkpoint path + metrics.
+    
+    When H.distributed=True, uses Accelerate + FSDP for multi-GPU training.
+    """
     import time
     t0 = time.time()
     out = Path(output_dir)
@@ -94,18 +126,29 @@ def train_lora_sft(
         from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
         from trl import SFTConfig, SFTTrainer
 
+        # FSDP path: use Accelerator
+        if H.distributed:
+            try:
+                from accelerate import Accelerator
+                fsdp_plugin = _fsdp_config(H)
+                accelerator = Accelerator(fsdp_plugin=fsdp_plugin) if fsdp_plugin else Accelerator()
+            except ImportError:
+                accelerator = None
+        else:
+            accelerator = None
+
         tok = AutoTokenizer.from_pretrained(H.base_model, trust_remote_code=True)
         if tok.pad_token is None:
             tok.pad_token = tok.eos_token
 
         bnb = _quant_config(H.quant)
         model_kwargs: dict = {"trust_remote_code": True}
-        if bnb is not None:
+        if bnb is not None and not H.distributed:
             model_kwargs["quantization_config"] = bnb
         model_kwargs["torch_dtype"] = torch.bfloat16 if H.bf16 else torch.float16
 
         model = AutoModelForCausalLM.from_pretrained(H.base_model, **model_kwargs)
-        if bnb is not None:
+        if bnb is not None and not H.distributed:
             model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=H.grad_checkpoint)
 
         if not H.full_finetune:
@@ -130,9 +173,9 @@ def train_lora_sft(
             num_train_epochs=H.epochs,
             warmup_ratio=H.warmup_ratio,
             max_seq_length=H.max_seq_len,
-            bf16=H.bf16,
-            fp16=not H.bf16,
-            gradient_checkpointing=H.grad_checkpoint,
+            bf16=H.bf16 and not H.distributed,  # FSDP handles mixed precision
+            fp16=not H.bf16 and not H.distributed,
+            gradient_checkpointing=H.grad_checkpoint and not H.distributed,
             save_strategy="epoch",
             save_total_limit=1,
             logging_steps=10,
@@ -140,6 +183,11 @@ def train_lora_sft(
             seed=H.seed,
             packing=False,
         )
+
+        # FSDP: prepare with accelerator
+        if accelerator is not None:
+            model, tok = accelerator.prepare(model, tok)
+
         trainer = SFTTrainer(
             model=model, args=sft_cfg, tokenizer=tok,
             train_dataset=train_ds, eval_dataset=eval_ds,

@@ -1,0 +1,39 @@
+# FSDP configuration for "big" tier training (paper Section 6.1)
+# Used with accelerate launch for distributed training
+
+accelerate_config:
+  distributed_type: FSDP
+  fsdp_config:
+    fsdp_auto_wrap_policy: TRANSFORMER_BASED_WRAP
+    fsdp_backward_prefetch: BACKWARD_PRE
+    fsdp_forward_prefetch: true
+    fsdp_offload_params: false
+    fsdp_state_dict_type: FULL_STATE_DICT
+    fsdp_transformer_layer_cls_to_wrap: LlamaDecoderLayer
+  machine_rank: 0
+  main_process_ip: null
+  main_process_port: null
+  main_training_function: main
+  mixed_precision: bf16
+  num_machines: 1
+  num_processes: 2
+  use_cpu: false
+
+# Hardware tier mapping
+hardware_tiers:
+  edge:
+    distributed: false
+    quant: "4bit"
+    lora_rank: 8
+    max_seq_len: 1024
+  mid:
+    distributed: false
+    quant: "8bit"
+    lora_rank: 32
+    max_seq_len: 2048
+  big:
+    distributed: true
+    quant: "none"
+    lora_rank: 64
+    max_seq_len: 4096
+    fsdp_config: configs/fsdp.yaml

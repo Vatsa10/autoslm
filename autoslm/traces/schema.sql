@@ -44,3 +44,23 @@ CREATE TABLE IF NOT EXISTS failure_clusters (
     representative_ids JSON,                  -- list of inference ids
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Per-label historical accuracy (paper Section 2.7 confidence calibration).
+CREATE TABLE IF NOT EXISTS label_stats (
+    model_id      TEXT NOT NULL,
+    label         TEXT NOT NULL,
+    n_total       INTEGER NOT NULL DEFAULT 0,
+    n_correct     INTEGER NOT NULL DEFAULT 0,
+    last_updated  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (model_id, label)
+);
+
+-- Eval history for cross-checkpoint tracking.
+CREATE TABLE IF NOT EXISTS eval_history (
+    id            TEXT PRIMARY KEY,
+    model_id      TEXT NOT NULL,
+    eval_set_path TEXT,
+    score         DOUBLE,
+    regressions   INTEGER DEFAULT 0,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
