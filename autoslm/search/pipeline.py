@@ -62,6 +62,7 @@ class LearningStrategy:
     eval_method: Literal["exact_match", "f1", "rouge", "pass_at_k", "llm_judge"] = "exact_match"
     judge_model: Optional[str] = None
     judge_criteria: Optional[str] = None
+    objective: Literal["sft", "dpo", "kto"] = "sft"  # paper Section 6.3
 
 
 @dataclass
