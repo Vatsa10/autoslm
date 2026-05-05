@@ -68,6 +68,7 @@ class MCGSConfig:
     stagnation_window: int = 3
     stagnation_eps: float = 0.005
     max_iterations: int = 50
+    parallel_branches: int = 1       # paper Eq.3: 2-3 configs trained in parallel
 
 
 class MCGS:
@@ -194,6 +195,33 @@ class MCGS:
 
     # ---- main loop ----
 
+    def _evaluate_parallel(self, nodes: list[Node]) -> list[NodeResult]:
+        """Evaluate multiple nodes in parallel using ProcessPoolExecutor or Modal."""
+        if self.cfg.parallel_branches <= 1 or len(nodes) <= 1:
+            return [self.evaluate(n) for n in nodes]
+
+        # Try Modal first (if configured)
+        try:
+            import modal
+            return self._evaluate_modal(nodes)
+        except ImportError:
+            pass
+
+        # Fallback: local ProcessPoolExecutor
+        from concurrent.futures import ProcessPoolExecutor
+        pipelines = [n.pipeline for n in nodes]
+        with ProcessPoolExecutor(max_workers=min(len(nodes), self.cfg.parallel_branches)) as ex:
+            results = list(ex.map(self.evaluator, pipelines))
+        for node, result in zip(nodes, results):
+            node.result = result
+            node.visits += 1
+        return results
+
+    def _evaluate_modal(self, nodes: list[Node]) -> list[NodeResult]:
+        """Evaluate branches via Modal sandbox (paper Section 2.5 / 2.6)."""
+        from . import modal_runner  # lazy import
+        return modal_runner.evaluate_batch([n.pipeline for n in nodes])
+
     def run(self, root: Pipeline) -> Node:
         root_node = self.add_node(root)
         root_result = self.evaluate(root_node)
@@ -220,28 +248,31 @@ class MCGS:
                         new.pruned = True   # rollback
                     continue
 
-            child_pi = self.expander(parent, self)
-            child_pi.parent_id = parent.id
-            child_pi.iteration = self.iteration
-            child = self.add_node(child_pi, parent_id=parent.id)
-            result = self.evaluate(child)
+            # Parallel branch evaluation (paper Eq.3)
+            children: list[Node] = []
+            for _ in range(max(1, self.cfg.parallel_branches)):
+                child_pi = self.expander(parent, self)
+                child_pi.parent_id = parent.id
+                child_pi.iteration = self.iteration
+                child = self.add_node(child_pi, parent_id=parent.id)
+                children.append(child)
 
-            if result.failed:
-                child.pruned = True
-                continue
-
-            # rollback rule (paper Section 2.4)
-            if parent.result and result.score < parent.result.score:
-                child.pruned = True
-                continue
-
-            # regression gate (production)
-            if self.cfg.enforce_regression and result.regressions > self.cfg.regression_epsilon:
-                child.pruned = True
-                continue
-
-            if self.is_acceptable(result):
-                return child
+            # Evaluate in parallel
+            results = self._evaluate_parallel(children)
+            for child, result in zip(children, results):
+                if result.failed:
+                    child.pruned = True
+                    continue
+                # rollback rule (paper Section 2.4)
+                if parent.result and result.score < parent.result.score:
+                    child.pruned = True
+                    continue
+                # regression gate (production)
+                if self.cfg.enforce_regression and result.regressions > self.cfg.regression_epsilon:
+                    child.pruned = True
+                    continue
+                if self.is_acceptable(result):
+                    return child
 
         # exhausted budget; return best acceptable or just best
         return self.best_acceptable() or self.best() or root_node

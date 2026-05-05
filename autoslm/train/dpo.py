@@ -318,19 +318,3 @@ def train_kto(
             config_used={"H": asdict(H), "S": asdict(S), "method": "kto"},
             error=str(e),
         )
-
-
-# ---------------------------------------------------------------------------
-# LearningStrategy extension: objective field
-# ---------------------------------------------------------------------------
-
-# Patch LearningStrategy to add objective field if not present
-def _patch_learning_strategy():
-    from ..search.pipeline import LearningStrategy
-    if not hasattr(LearningStrategy, "objective"):
-        LearningStrategy.objective = "sft"  # type: ignore
-        LearningStrategy.__dataclass_fields__["objective"] = (  # type: ignore
-            __import__("dataclasses").field(default="sft")
-        )
-
-_patch_learning_strategy()
