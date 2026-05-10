@@ -1,0 +1,21 @@
+{
+  "run_id": "smoke-e2e",
+  "tokens": {
+    "orchestrator": {
+      "input": 1000,
+      "output": 500,
+      "total": 1500,
+      "cost_usd": 0.0025
+    }
+  },
+  "gpu_minutes": 2.0,
+  "training_steps": 0,
+  "sandbox_hours": 0.0,
+  "sandbox_provider": "local",
+  "total_llm_cost_usd": 0.0025,
+  "total_compute_cost_usd": 0.006666666666666667,
+  "total_cost_usd": 0.009166666666666667,
+  "wall_clock_minutes": 0.022436865170796714,
+  "start_time": 1778416660.5369375,
+  "end_time": 1778416661.8831494
+}

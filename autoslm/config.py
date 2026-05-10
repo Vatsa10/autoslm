@@ -12,12 +12,17 @@ class HardwareTier(BaseModel):
     max_seq_len: int = 2048
     bf16: bool = True
     grad_checkpoint: bool = False
+    # FSDP / accelerate launch when training cross multi-GPU (paper §2.1 big tier).
+    distributed: bool = False
 
 
 TIERS: dict[str, HardwareTier] = {
-    "edge": HardwareTier(name="edge", quant="4bit", lora_rank=8, max_seq_len=1024, grad_checkpoint=True),
-    "mid": HardwareTier(name="mid", quant="8bit", lora_rank=32, max_seq_len=2048, grad_checkpoint=True),
-    "big": HardwareTier(name="big", quant="none", lora_rank=64, max_seq_len=4096, grad_checkpoint=False),
+    "edge": HardwareTier(name="edge", quant="4bit", lora_rank=8, max_seq_len=1024,
+                         grad_checkpoint=True, distributed=False),
+    "mid": HardwareTier(name="mid", quant="8bit", lora_rank=32, max_seq_len=2048,
+                        grad_checkpoint=True, distributed=False),
+    "big": HardwareTier(name="big", quant="none", lora_rank=64, max_seq_len=4096,
+                        grad_checkpoint=False, distributed=True),
 }
 
 

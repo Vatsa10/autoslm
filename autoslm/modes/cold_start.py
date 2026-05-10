@@ -138,6 +138,7 @@ def run_cold_start(
         max_seq_len=tier.max_seq_len,
         quant=tier.quant, bf16=tier.bf16,
         grad_checkpoint=tier.grad_checkpoint,
+        distributed=tier.distributed,
         model_family=classification.model_family,  # type: ignore[arg-type]
         gliner_labels=classification.labels if classification.model_family == "gliner2" else None,
     )

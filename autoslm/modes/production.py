@@ -337,6 +337,7 @@ def run_production(
         base_model=base_model, lora_rank=tier.lora_rank,
         max_seq_len=tier.max_seq_len, quant=tier.quant, bf16=tier.bf16,
         grad_checkpoint=tier.grad_checkpoint,
+        distributed=tier.distributed,
     )
     S0 = LearningStrategy(
         supervision="cot" if use_cot else "direct",

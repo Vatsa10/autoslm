@@ -1,86 +1,61 @@
-"""ARC-Challenge cold-start replication (paper Table 2).
-
-Target: ~72.6% on Llama-3.2-3B (paper reports 72.6% for ARC-Challenge).
-
-Usage:
-    python bench/repro/cold_start_arc.py --base-model meta-llama/Llama-3.2-3B --max-iter 10
-"""
-
+"""ARC-Challenge cold-start replication (paper Table 2; target 72.6%)."""
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
+from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from autoslm.modes.cold_start import run_cold_start
-from autoslm.search.pipeline import DatasetSpec, HyperParams, LearningStrategy, Pipeline
-from autoslm.eval.metrics import exact_match
+from bench.repro._common import (
+    announce, dry_run_print, make_cfg, stamp, write_result,
+)
+
+SCENARIO = "arc"
+DEFAULT_BASE_MODEL = "meta-llama/Llama-3.2-3B"
+DEFAULT_TARGET = 0.726
 
 
-def build_arc_pipeline(base_model: str) -> Pipeline:
-    D = DatasetSpec(
-        name="arc-challenge",
-        gold_ratio=0.7,
-        hard_neg_ratio=0.3,
-        replay_ratio=0.0,
-        max_examples=2000,
-    )
-    H = HyperParams(
+def run(max_iter: int = 10, tier: str = "edge",
+        base_model: Optional[str] = None,
+        out_dir: str | Path = None, dry_run: bool = False,
+        target: float = DEFAULT_TARGET) -> dict:
+    base_model = base_model or DEFAULT_BASE_MODEL
+    out_dir = Path(out_dir or f"runs/repro/{SCENARIO}/{stamp()}")
+    if dry_run:
+        return dry_run_print(SCENARIO, base_model=base_model, tier=tier,
+                            max_iter=max_iter, target=target,
+                            out_dir=str(out_dir))
+    cfg = make_cfg(tier, out_dir)
+    announce(SCENARIO, base_model, target, max_iter, tier, out_dir)
+
+    result = run_cold_start(
+        cfg=cfg,
+        task_spec="ARC-Challenge: multiple-choice science reasoning. Choose A|B|C|D.",
         base_model=base_model,
-        lora_rank=32,
-        lora_alpha=64,
-        learning_rate=2e-4,
-        batch_size=4,
-        grad_accum=4,
-        epochs=3,
-        max_seq_len=2048,
-        quant="8bit",
-        bf16=True,
-        grad_checkpoint=True,
+        dataset_hint="allenai/ai2_arc",
+        target_threshold=target,
+        max_iterations=max_iter,
+        run_id=f"arc-{stamp()}",
     )
-    S = LearningStrategy(
-        supervision="direct",
-        eval_method="exact_match",
-    )
-    return Pipeline(D=D, H=H, S=S, notes="ARC-Challenge cold-start")
+    p = write_result(out_dir, SCENARIO, result, target)
+    print(f"\nresult: {p}\nfinal_score: {result.get('best_score')} target: {target}")
+    return result
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ARC-Challenge cold-start replication")
-    parser.add_argument("--base-model", type=str, default="meta-llama/Llama-3.2-3B")
-    parser.add_argument("--max-iter", type=int, default=10)
-    parser.add_argument("--target", type=float, default=0.726, help="Target accuracy from paper")
-    parser.add_argument("--output", type=str, default="bench/repro/results/arc_result.json")
-    args = parser.parse_args()
-
-    print(f"Running ARC-Challenge cold-start with {args.base_model}")
-    print(f"Target accuracy: {args.target:.1%}")
-
-    pipeline = build_arc_pipeline(args.base_model)
-    result = run_cold_start(
-        cfg=pipeline,
-        task_spec="ARC-Challenge: multiple choice question answering",
-        base_model=args.base_model,
-        dataset_hint="arc-challenge",
-        target_threshold=args.target,
-        max_iterations=args.max_iter,
-    )
-
-    # Save results
-    out_path = Path(args.output)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(result, indent=2, default=str))
-    print(f"\nResult saved to {out_path}")
-
-    final_score = result.get("final_score", 0.0)
-    print(f"Final score: {final_score:.3f} (target: {args.target:.3f})")
-    if final_score >= args.target * 0.95:  # 5% tolerance
-        print("SUCCESS: Reached target performance!")
-    else:
-        print("Note: Full budget may be needed to reach paper target.")
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--base-model", default=DEFAULT_BASE_MODEL)
+    ap.add_argument("--max-iter", type=int, default=10)
+    ap.add_argument("--tier", default="edge", choices=["edge", "mid", "big"])
+    ap.add_argument("--target", type=float, default=DEFAULT_TARGET)
+    ap.add_argument("--out", default=None)
+    ap.add_argument("--dry-run", action="store_true")
+    args = ap.parse_args()
+    run(max_iter=args.max_iter, tier=args.tier, base_model=args.base_model,
+        out_dir=args.out, dry_run=args.dry_run, target=args.target)
 
 
 if __name__ == "__main__":

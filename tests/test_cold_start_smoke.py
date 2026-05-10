@@ -1,12 +1,23 @@
-"""Smoke test for cold-start mode (planned in PLAN.md).
+"""Smoke test for cold-start mode.
 
 Minimal 50-example synthetic task, single iteration, asserts loop completes.
+Requires torch (cold-start evaluator imports inference.load_for_inference).
 """
 
 from __future__ import annotations
 
+import importlib.util
+
 import pytest
 from pathlib import Path
+
+torch_available = importlib.util.find_spec("torch") is not None
+
+pytestmark = [
+    pytest.mark.skipif(not torch_available, reason="torch not installed"),
+    pytest.mark.e2e,
+]
+
 from autoslm.modes.cold_start import run_cold_start
 from autoslm.search.pipeline import Pipeline, DatasetSpec, HyperParams, LearningStrategy
 

@@ -1,0 +1,16 @@
+{
+  "out_dir": "runs\\smoke\\20260510-180810",
+  "tier": "edge",
+  "base_model": "HuggingFaceTB/SmolLM2-360M-Instruct",
+  "stages": {
+    "init": "ok",
+    "trace_store": "ok",
+    "calibration": "ok",
+    "mcgs_stub": "ok",
+    "ratchet": "ok",
+    "cost": "ok",
+    "train": "fail: SFTTrainer.__init__() got an unexpected keyword argument 'tokenizer'"
+  },
+  "deployed_model_id": "smoke-deploy-ff3452",
+  "elapsed_sec": 10.5
+}

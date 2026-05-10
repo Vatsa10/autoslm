@@ -1,0 +1,16 @@
+{
+  "out_dir": "runs\\smoke\\20260510-175431",
+  "tier": "edge",
+  "base_model": "HuggingFaceTB/SmolLM2-360M-Instruct",
+  "stages": {
+    "init": "ok",
+    "trace_store": "ok",
+    "calibration": "ok",
+    "mcgs_stub": "ok",
+    "ratchet": "ok",
+    "cost": "ok",
+    "train": "skip"
+  },
+  "deployed_model_id": "smoke-deploy-0a8c4d",
+  "elapsed_sec": 2.5
+}

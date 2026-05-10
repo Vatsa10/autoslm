@@ -171,7 +171,7 @@ def train_lora_sft(
             learning_rate=H.learning_rate,
             num_train_epochs=H.epochs,
             warmup_ratio=H.warmup_ratio,
-            max_seq_length=H.max_seq_len,
+            max_length=H.max_seq_len,
             bf16=H.bf16 and not H.distributed,  # FSDP handles mixed precision
             fp16=not H.bf16 and not H.distributed,
             gradient_checkpointing=H.grad_checkpoint and not H.distributed,

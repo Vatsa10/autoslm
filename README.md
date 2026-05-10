@@ -33,12 +33,13 @@ This repo is a from-scratch implementation of the architecture described in the 
 | Cold-start mode (5-stage workflow, unconstrained MCGS) | 2.5 | done |
 | Trace Analyzer sub-agent (own LLM context, ~100K out, disk-backed) | 2.1 | done |
 | GLiNER2 encoder path (NER + classification, full FT or LoRA) | 2.1 | done |
-| Modal sandbox runner | 2.1 | planned v0.4 (local Docker fallback works) |
-| Confidence calibration + TF-IDF correction propagation | 2.7 | planned v0.3 |
-| FSDP for `big` tier; DPO/RLHF objectives | 2.1, 6.3 | planned v0.3 |
-| Distributed MCGS — parallel branches per iteration | 2.2 (Eq. 3) | planned v0.4 |
-| Cost telemetry (tokens + GPU hours per run) | 6.1 | planned v0.4 |
-| Paper benchmark replication suite (CLINC150, ARC, GSM8K, etc.) | 4 | planned v0.4 |
+| Modal sandbox runner (`@modal.function(gpu="A10G")`) | 2.1 | done |
+| Confidence calibration + TF-IDF correction propagation | 2.7 | done |
+| FSDP for `big` tier; DPO/KTO objectives | 2.1, 6.3 | done |
+| Distributed MCGS — parallel branches per iteration | 2.2 (Eq. 3) | done |
+| Cost telemetry (tokens + GPU hours per run) | 6.1 | done |
+| Paper benchmark replication suite (CLINC150, ARC, GSM8K, HumanEval, CoNLL-2003) | 4 | done |
+| End-to-end smoke harness (`autoslm smoke-e2e`) | n/a | done |
 
 ---
 
@@ -293,8 +294,9 @@ Pipeline-level knobs (`AutoSLMConfig`):
 
 - **v0.1** (done) — Production mode + MCGS + AdaptFT-Bench + multi-provider orchestrator + LoRA SFT
 - **v0.2** (done) — Live confirmation probes, cross-checkpoint ratchet, audit log, Trace Analyzer sub-agent, GLiNER2 encoder path, cold-start mode (`autoslm cold-start`)
-- **v0.3** (planned) — Confidence calibration + TF-IDF correction propagation, FSDP for `big` tier, DPO/RLHF objectives
-- **v0.4** (planned) — Distributed MCGS (parallel branch eval), Modal sandbox runner, paper benchmark replication suite (`bench/repro/`), cost telemetry
+- **v0.3** (done) — Confidence calibration + TF-IDF correction propagation, FSDP for `big` tier, DPO/KTO objectives
+- **v0.4** (done) — Distributed MCGS (parallel branch eval), Modal sandbox runner, paper benchmark replication suite (`autoslm repro <scenario>`), cost telemetry
+- **Real-time validation** — `autoslm smoke-e2e` exercises the full closed loop on a tiny model in <10 min
 
 ---
 

@@ -1,0 +1,16 @@
+{
+  "out_dir": "runs\\smoke\\20260510-180740",
+  "tier": "edge",
+  "base_model": "HuggingFaceTB/SmolLM2-360M-Instruct",
+  "stages": {
+    "init": "ok",
+    "trace_store": "ok",
+    "calibration": "ok",
+    "mcgs_stub": "ok",
+    "ratchet": "ok",
+    "cost": "ok",
+    "train": "fail: Using `bitsandbytes` 4-bit quantization requires bitsandbytes: `pip install -U bitsandbytes>=0.46.1`"
+  },
+  "deployed_model_id": "smoke-deploy-2be011",
+  "elapsed_sec": 10.7
+}

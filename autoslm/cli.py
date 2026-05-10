@@ -140,6 +140,88 @@ def orchestrate(
     typer.echo(json.dumps({"turns": len(convo)}, indent=2))
 
 
+@app.command("repro")
+def repro(
+    scenario: str = typer.Argument(..., help="arc | gsm8k | humaneval | clinc150 | conll2003"),
+    max_iter: int = typer.Option(10, "--max-iter"),
+    tier: str = typer.Option("edge", "--tier"),
+    base_model: Optional[str] = typer.Option(None, "--base-model"),
+    out: Optional[str] = typer.Option(None, "--out"),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+):
+    """Run a paper-replication scenario from `bench/repro/`."""
+    import importlib
+    from bench.repro import SCENARIOS, SCENARIO_MODULES
+    if scenario not in SCENARIOS:
+        typer.echo(f"unknown scenario '{scenario}'. choose from: {SCENARIOS}", err=True)
+        raise typer.Exit(2)
+    mod = importlib.import_module(SCENARIO_MODULES[scenario])
+    out_dict = mod.run(max_iter=max_iter, tier=tier, base_model=base_model,
+                      out_dir=out, dry_run=dry_run)
+    typer.echo(json.dumps(out_dict, indent=2, default=str))
+
+
+@app.command("dpo")
+def dpo(
+    pairs: str = typer.Argument(..., help="JSONL with {input, output, judge_score}"),
+    base_model: str = typer.Option(...),
+    out: str = typer.Option("./runs/dpo"),
+    tier: str = typer.Option("mid"),
+):
+    """Run DPO preference fine-tuning on a labeled-pairs JSONL."""
+    from .train.dpo import train_dpo
+    from .search.pipeline import HyperParams, LearningStrategy
+    from .data.curate import Example
+    cfg = AutoSLMConfig(hardware_tier=tier)
+    rows = [json.loads(l) for l in Path(pairs).read_text(encoding="utf-8").splitlines() if l.strip()]
+    examples = [{"input": r["input"], "output": r["output"],
+                "judge_score": r.get("judge_score", 0.5)} for r in rows]
+    t = cfg.tier()
+    H = HyperParams(base_model=base_model, lora_rank=t.lora_rank,
+                    max_seq_len=t.max_seq_len, quant=t.quant, bf16=t.bf16,
+                    grad_checkpoint=t.grad_checkpoint, distributed=t.distributed)
+    S = LearningStrategy(supervision="direct", eval_method="exact_match", objective="dpo")
+    result = train_dpo(examples, H, S, out)
+    typer.echo(json.dumps({"model_id": result.model_id, "checkpoint": result.checkpoint_path,
+                          "error": result.error}, indent=2, default=str))
+
+
+@app.command("kto")
+def kto(
+    pairs: str = typer.Argument(..., help="JSONL with {input, output, judge_score}"),
+    base_model: str = typer.Option(...),
+    out: str = typer.Option("./runs/kto"),
+    tier: str = typer.Option("mid"),
+):
+    """Run KTO preference fine-tuning on a labeled-pairs JSONL."""
+    from .train.dpo import train_kto
+    from .search.pipeline import HyperParams, LearningStrategy
+    cfg = AutoSLMConfig(hardware_tier=tier)
+    rows = [json.loads(l) for l in Path(pairs).read_text(encoding="utf-8").splitlines() if l.strip()]
+    examples = [{"input": r["input"], "output": r["output"],
+                "judge_score": r.get("judge_score", 0.5)} for r in rows]
+    t = cfg.tier()
+    H = HyperParams(base_model=base_model, lora_rank=t.lora_rank,
+                    max_seq_len=t.max_seq_len, quant=t.quant, bf16=t.bf16,
+                    grad_checkpoint=t.grad_checkpoint, distributed=t.distributed)
+    S = LearningStrategy(supervision="direct", eval_method="exact_match", objective="kto")
+    result = train_kto(examples, H, S, out)
+    typer.echo(json.dumps({"model_id": result.model_id, "checkpoint": result.checkpoint_path,
+                          "error": result.error}, indent=2, default=str))
+
+
+@app.command("smoke-e2e")
+def smoke_e2e(
+    tier: str = typer.Option("edge"),
+    base_model: str = typer.Option("HuggingFaceTB/SmolLM2-360M-Instruct"),
+    out: Optional[str] = typer.Option(None),
+):
+    """End-to-end smoke: cold-start init -> 1 MCGS branch -> SFT -> probe -> ratchet."""
+    from bench.smoke_e2e import run_smoke
+    out_dict = run_smoke(tier=tier, base_model=base_model, out_dir=out)
+    typer.echo(json.dumps(out_dict, indent=2, default=str))
+
+
 @app.command("tiers")
 def list_tiers():
     """Print available hardware tier presets."""

@@ -1,0 +1,16 @@
+{
+  "out_dir": "runs\\smoke\\20260510-175959",
+  "tier": "edge",
+  "base_model": "HuggingFaceTB/SmolLM2-360M-Instruct",
+  "stages": {
+    "init": "ok",
+    "trace_store": "ok",
+    "calibration": "ok",
+    "mcgs_stub": "ok",
+    "ratchet": "ok",
+    "cost": "ok",
+    "train": "fail: Failed to import trl.trainer.sft_trainer because of the following error (look up to see its traceback):\n'charmap' codec can't decode byte 0x81 in position 932: character maps to <undefined>"
+  },
+  "deployed_model_id": "smoke-deploy-ee7334",
+  "elapsed_sec": 4.6
+}
