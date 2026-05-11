@@ -7,10 +7,15 @@ from typing import Optional
 def load_for_inference(checkpoint_path: str, base_model: Optional[str] = None,
                        quant: str = "8bit"):
     """Load LoRA adapter on top of base model."""
+    import importlib.util
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from peft import PeftModel
     from .lora_sft import _quant_config
+
+    # Graceful bnb fallback (CPU build / not installed)
+    if quant in {"4bit", "8bit"} and importlib.util.find_spec("bitsandbytes") is None:
+        quant = "none"
 
     ck = Path(checkpoint_path)
     base = base_model

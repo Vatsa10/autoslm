@@ -19,6 +19,7 @@ dependencies = [
     "networkx",
     "tenacity",
     "tqdm",
+    "python-dotenv",
 ]
 
 [project.optional-dependencies]

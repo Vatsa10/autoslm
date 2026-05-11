@@ -120,10 +120,16 @@ def train_lora_sft(
     ckpt_dir.mkdir(exist_ok=True)
 
     try:
+        import importlib.util
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
         from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
         from trl import SFTConfig, SFTTrainer
+
+        # Graceful bnb fallback: if quant requested but bitsandbytes not
+        # importable (e.g. CPU build, or not installed), drop to fp16/bf16.
+        if H.quant in {"4bit", "8bit"} and importlib.util.find_spec("bitsandbytes") is None:
+            H = type(H)(**{**asdict(H), "quant": "none"})
 
         # FSDP path: use Accelerator
         if H.distributed:
@@ -188,7 +194,7 @@ def train_lora_sft(
             model, tok = accelerator.prepare(model, tok)
 
         trainer = SFTTrainer(
-            model=model, args=sft_cfg, tokenizer=tok,
+            model=model, args=sft_cfg, processing_class=tok,
             train_dataset=train_ds, eval_dataset=eval_ds,
         )
         history = trainer.train()

@@ -101,9 +101,21 @@ class TraceStore:
         cur = conn.execute(sql, params)
         if self.backend == "duckdb":
             cols = [d[0] for d in cur.description]
-            return [dict(zip(cols, row)) for row in cur.fetchall()]
-        cols = [d[0] for d in cur.description] if cur.description else []
-        return [dict(zip(cols, row)) for row in cur.fetchall()]
+            rows = [dict(zip(cols, row)) for row in cur.fetchall()]
+        else:
+            cols = [d[0] for d in cur.description] if cur.description else []
+            rows = [dict(zip(cols, row)) for row in cur.fetchall()]
+        # Decode JSON columns (metadata, pipeline_json) on read so callers can
+        # rely on dict semantics without each call doing its own json.loads.
+        for r in rows:
+            for k in ("metadata", "pipeline_json", "representative_ids"):
+                v = r.get(k)
+                if isinstance(v, str) and v:
+                    try:
+                        r[k] = json.loads(v)
+                    except Exception:
+                        pass
+        return rows
 
     def fail_set(self, model_id: str, limit: int = 10_000) -> list[dict]:
         return self.query(
